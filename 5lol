@@ -1,0 +1,126 @@
+local __DARKLUA_BUNDLE_MODULES
+
+__DARKLUA_BUNDLE_MODULES = {
+    cache = {},
+    load = function(m)
+        if not __DARKLUA_BUNDLE_MODULES.cache[m] then
+            __DARKLUA_BUNDLE_MODULES.cache[m] = {
+                c = __DARKLUA_BUNDLE_MODULES[m](),
+            }
+        end
+        return __DARKLUA_BUNDLE_MODULES.cache[m].c
+    end,
+}
+
+-- Define module 'a'
+function __DARKLUA_BUNDLE_MODULES.a()
+    return 0
+end
+
+-- Define module 'b'
+function __DARKLUA_BUNDLE_MODULES.b()
+    local Utilities = {}
+    local Workspace = game:GetService('Workspace')
+    local CurrentCamera = Workspace.CurrentCamera
+
+    function Utilities.math_round(Number, Scale)
+        if typeof(Number) == 'string' then
+            return Number
+        end
+
+        local Multiplier = 10 ^ (Scale or 0)
+        local Rounded = math.floor(Number * Multiplier + 0.5) / Multiplier
+        local _, DecimalPart = math.modf(Rounded)
+
+        if DecimalPart == 0 then
+            return string.format('%.0f', Rounded) .. '.00'
+        else
+            return string.format('%.' .. Scale .. 'f', Rounded)
+        end
+    end
+
+    function Utilities.Vector3ToVector2(v)
+        return Vector2.new(v.X, v.Y)
+    end
+
+    function Utilities.WorldToScreen(v)
+        local ViewportPoint, _ = CurrentCamera:WorldToViewportPoint(v)
+        return Utilities.Vector3ToVector2(ViewportPoint)
+    end
+
+    function Utilities.DeepCopy(tableToClone, ignoreIndexes)
+        local copy = {}
+        for key, value in pairs(tableToClone) do
+            if typeof(value) == 'table' then
+                if ignoreIndexes and table.find(ignoreIndexes, key) then
+                    copy[key] = value
+                else
+                    copy[key] = Utilities.DeepCopy(value, nil)
+                end
+            else
+                copy[key] = value
+            end
+        end
+        return copy
+    end
+
+    function Utilities.CombineTables(Base, ToAdd, Count)
+        Base = Base or {}
+        ToAdd = ToAdd or {}
+        Count = Count or 0
+
+        for i, BaseValue in pairs(Base) do
+            local ToAddValue = ToAdd[i]
+
+            if typeof(BaseValue) == 'table' and typeof(ToAddValue) == 'table' then
+                Utilities.CombineTables(BaseValue, ToAddValue, Count + 1)
+                continue
+            end
+
+            local ToAddNewValue = ToAddValue or BaseValue
+            ToAdd[i] = ToAddNewValue
+        end
+        return ToAdd
+    end
+
+    function Utilities.CheckChance(Chance)
+        return math.random(0, 100) <= Chance
+    end
+
+    function Utilities.ApplyVector2(v, Func)
+        return Vector2.new(Func(v.X), Func(v.Y))
+    end
+
+    function Utilities.IsPointInDrawing(Object, Type, Point, OverridePosition)
+        if Type == 'Square' then
+            local Position = OverridePosition or Object.Position
+            local Size = Object.Size
+            return Point.X >= Position.X and Point.X <= Position.X + Size.X and Point.Y >= Position.Y and Point.Y <= Position.Y + Size.Y
+        elseif Type == 'Circle' then
+            local Position = OverridePosition or Object.Position
+            return (Position - Point).Magnitude <= Object.Radius
+        elseif Type == 'Triangle' then
+            local PointA = Object.PointA
+            local PointB = Object.PointB
+            local PointC = Object.PointC
+            local AS = Point - PointA
+            local AB = (PointB - PointA):Cross(AS) > 0
+
+            if ((PointC - PointA):Cross(AS) > 0) == AB then
+                return false
+            end
+            if ((PointC - PointB):Cross(Point - PointB) > 0) ~= AB then
+                return false
+            end
+            return true
+        end
+        return false
+    end
+
+    return Utilities
+end
+
+-- Define module 'c'
+function __DARKLUA_BUNDLE_MODULES.c()
+    local ConfigurationTypes = __DARKLUA_BUNDLE_MODULES.load('a')
+    local DefaultConfig = {
